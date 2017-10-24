@@ -15,7 +15,7 @@ for i = 1:numSubs
 	mov = mov(:,[4:6,1:3]);
 	% Get FD
 	fdJenk{i} = GetFDJenk(mov);
-	% get threshold ofr each subject
+	% get threshold of each subject
 	percentile{i} = prctile(fdJenk{i},75);
 	interquartile{i} = iqr(fdJenk{i});
 	thr{i} = percentile{i} + (interquartile{i} * 1.5);

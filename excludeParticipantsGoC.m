@@ -2,22 +2,36 @@
 % The only difference is that this script opens up motion parameters file first and
 % computes FD; while excludeParticipants.m takes in data from a matlab structure
 
-datadir = '/Users/kristinasabaroedin/Documents/Projects/genofcog/motion-control/mc_par/';
+%datadir = '/Users/kristinasabaroedin/Documents/Projects/genofcog/motion-control/mc_par/';
+datadir = '/Users/kristinasabaroedin/Documents/Projects/Michelle_MotionParams/';
 
 cd(datadir)
-fileID = fopen('goc_subs.txt');
+%fileID = fopen('goc_subs.txt');
+fileID = fopen('sns-rsfmri-subs.txt');
 ParticipantIDs = textscan(fileID,'%s');
 ParticipantIDs = ParticipantIDs{1};
 
 % compute numsubs
 numSubs = length(ParticipantIDs);
 
+% ------------------------------------------------------------------------------
+% Containers
+% ------------------------------------------------------------------------------
+mov = cell(numSubs,1);
+
+fdJenk = cell(numSubs,1);
+fdJenk_mean = zeros(numSubs,1);
+
 for i = 1:numSubs
 	% load motion para
-	mov = dlmread([ParticipantIDs{i},'/prefiltered_func_data_mcf.par']);
-	mov = mov(:,[4:6,1:3]);
+	%mov{i} = dlmread([ParticipantIDs{i},'/prefiltered_func_data_mcf.par']);
+    mov{i} = dlmread([ParticipantIDs{i},'_prefiltered_func_data_mcf.par']);
+	mov{i} = mov{i}(:,[4:6,1:3]);
+    
+    numVols = size(mov{i},1);
+
 	% Get FD
-	fdJenk{i} = GetFDJenk(mov);
+	fdJenk{i} = GetFDJenk(mov{i});
 	% Calculate mean
 	fdJenk_mean(i) = mean(fdJenk{i});
 
@@ -27,7 +41,8 @@ for i = 1:numSubs
 	% 1) Exclude on mean rms displacement
 	% Calculate whether subject has suprathreshold mean movement
 	% If the mean of displacement is greater than 0.55 mm (Sattethwaite), then exclude
-	if fdJenk_mean(i) > 0.55
+    % This value is halved for multiband data
+	if fdJenk_mean(i) > 0.28
 		exclude(i,1) = 1;
 	else
 		exclude(i,1) = 0;
@@ -43,9 +58,8 @@ for i = 1:numSubs
 		mean_exclude(i,1) = 0;
 	end	
 
-	fdThr = 0.11;
+	fdThr = 0.12;
 	% Calculate whether subject has >20% suprathreshold spikes
-	numVols = size(mov,1)-1;
 	fdJenkThrPerc = round(numVols * 0.20);
 	% If the number of volumes that exceed fdThr are greater than %20, then exclude
 	if sum(fdJenk{i} > fdThr) > fdJenkThrPerc
@@ -55,7 +69,8 @@ for i = 1:numSubs
     end
     
 	% 3) Exclude on large spikes (>5mm)
-	if any(fdJenk{i} > 5)
+    % This value is halved for multiband data
+	if any(fdJenk{i} > 2.5)
 		spike_exclude(i,1) = 1;
 	else
 		spike_exclude(i,1) = 0;
@@ -72,7 +87,8 @@ for i = 1:numSubs
 
     % threshold for exclusion in minutes
 	thresh = 4;
-	TR = 0.754;
+	TR = 0.697;
+    %TR = 0.754;
 	spikereg = GetSpikeRegressors(fdJenk{i},fdThr); % Spike regression exclusion
 	numCVols = numVols - size(spikereg,2); % number of volumes - number of spike regressors (columns)
 	NTime = (numCVols * TR)/60; % Compute length, in minutes, of time series data left after censoring

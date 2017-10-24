@@ -38,8 +38,6 @@ for i = 1:height(metadata)
 	else
 		sum_exclude(i,1) = 0;
     end
-
-   
     
 	% 3) Exclude on large spikes (>5mm)
 	if any(fdJenk > 5)
